@@ -14,7 +14,7 @@ version = 1.1.0
 # openpyxl est du Python pur ; et_xmlfile est sa seule dépendance obligatoire.
 requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,openpyxl,et_xmlfile,pyjnius,android
 
-orientation = all
+orientation = portrait, landscape
 fullscreen = 0
 
 # Aucune permission : le fichier est choisi via le sélecteur de documents Android (SAF)
