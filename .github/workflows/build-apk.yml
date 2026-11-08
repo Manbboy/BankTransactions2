@@ -1,0 +1,74 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:   # permet de lancer la compilation à la main depuis l'onglet Actions
+
+# Si plusieurs envois de fichiers se suivent, seule la dernière compilation continue.
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android:
+    name: Variante ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false          # une variante qui échoue n'arrête pas l'autre
+      matrix:
+        include:
+          - name: A
+            spec: buildozer.spec
+          - name: B
+            spec: buildozer_b.spec
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip autoconf automake libtool pkg-config \
+            zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev libltdl-dev
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          pip install buildozer "cython==3.0.11" virtualenv
+
+      - name: Choose variant
+        run: |
+          if [ "${{ matrix.spec }}" != "buildozer.spec" ]; then cp "${{ matrix.spec }}" buildozer.spec; fi
+          grep -E "^(requirements|p4a.branch|android.api|android.ndk)" buildozer.spec
+
+      - name: Build APK
+        run: |
+          set -o pipefail
+          buildozer -v android debug 2>&1 | tee build.log
+
+      - name: Résumé de l'erreur (à copier si la compilation échoue)
+        if: failure()
+        run: |
+          echo "=== Premières erreurs ==="
+          grep -n -m 15 -E "Command failed|error:|Error:|ERROR:|Traceback" build.log | cut -c1-300 || true
+          echo "=== 60 dernières lignes ==="
+          tail -n 60 build.log | cut -c1-300
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: transactions-apk-variante-${{ matrix.name }}
+          path: bin/*.apk
+          if-no-files-found: error
