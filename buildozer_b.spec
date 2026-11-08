@@ -14,7 +14,7 @@ version = 1.1.0
 requirements = python3,kivy==2.3.0,openpyxl,et_xmlfile,pyjnius,android
 p4a.branch = v2024.01.21
 
-orientation = all
+orientation = portrait, landscape
 fullscreen = 0
 android.permissions =
 
